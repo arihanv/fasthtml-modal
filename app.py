@@ -1,6 +1,7 @@
-from fasthtml.common import *
 import asyncio
 import random
+
+from fasthtml.common import *
 
 tlink = Script(src="https://cdn.tailwindcss.com")
 fasthtml_app, rt = fast_app(ws_hdr=True, hdrs=[tlink])
@@ -27,12 +28,7 @@ messages = [
 ]
 
 
-@rt("/")
-def get():
-    return Titled("FastHTML", P("Let's do this!"))
-
-
-def mk_inp():
+def chat_input():
     return Input(
         type="text",
         name="msg",
@@ -73,11 +69,30 @@ def chat_window():
     )
 
 
-@rt("/hello")
+@rt("/")
 async def get():
     cts = Div(
         chat_window(),
-        Form(mk_inp(), id="form", ws_send=True),
+        Form(chat_input(), id="form", ws_send=True),
+        Script(
+            """
+            function scrollToBottom(smooth) {
+                var messages = document.getElementById('messages');
+                messages.scrollTo({
+                    top: messages.scrollHeight,
+                    behavior: smooth ? 'smooth' : 'auto'
+                });
+            }
+            window.onload = function() {
+                scrollToBottom(true);
+            };
+
+            const observer = new MutationObserver(function() {
+                scrollToBottom(false);
+            });
+            observer.observe(document.getElementById('messages'), { childList: true, subtree: true });
+            """
+        ),
         hx_ext="ws",
         ws_connect="/ws",
     )
@@ -97,7 +112,7 @@ async def on_disconnect(ws):
 async def ws(msg: str, send):
     messages.append({"role": "user", "content": msg})
 
-    await send(mk_inp())
+    await send(chat_input())
     await send(
         Div(chat_message(len(messages) - 1), id="messages", hx_swap_oob="beforeend")
     )
