@@ -1,79 +1,64 @@
 import asyncio
 import random
+from typing import Literal
 
 from fasthtml.common import *
 
 tlink = Script(src="https://cdn.tailwindcss.com")
 fasthtml_app, rt = fast_app(ws_hdr=True, hdrs=[tlink])
 
-messages = [
-    {"role": "assistant", "content": "Hello, how can I help you today?"},
-    {"role": "user", "content": "I need assistance with my order."},
-    {
-        "role": "assistant",
-        "content": "Sure! Can you provide me with your order number?",
-    },
-    {"role": "user", "content": "It's 12345."},
-    {"role": "assistant", "content": "Thank you! Let me check that for you."},
-    {"role": "user", "content": "I need to return the item."},
-    {
-        "role": "assistant",
-        "content": "I'm sorry to hear that. Can you please provide me with the reason for the return?",
-    },
-    {"role": "user", "content": "I received the wrong item."},
-    {
-        "role": "assistant",
-        "content": "I apologize for the inconvenience. Can you please provide me with the correct item number?",
-    },
-]
+messages = []
 
 
-def chat_input():
+def chat_input(disabled=False):
     return Input(
         type="text",
         name="msg",
         id="msg-input",
         placeholder="Type a message",
         hx_swap_oob="true",
+        autofocus="true",
+        disabled=disabled,
+        cls="!mb-0 bg-zinc-900 border border-zinc-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 disabled:bg-zinc-800 disabled:border-zinc-700 disabled:cursor-not-allowed",
     )
 
 
 def chat_message(msg_idx):
     msg = messages[msg_idx]
-    role = Div(msg["role"], cls="text-xs text-gray-500 mb-1")
-    if msg["role"] == "user":
-        return Div(
-            role,
-            Div(msg["content"], cls="bg-blue-500 text-white p-2 rounded-lg max-w-xs"),
-            id=f"msg-{msg_idx}",
-            cls="self-end",
-        )
-    else:
-        return Div(
-            role,
-            Div(
-                msg["content"],
-                cls="bg-gray-300 text-black p-2 rounded-lg max-w-xs",
-                id=f"msg-content-{msg_idx}",
-            ),
-            id=f"msg-{msg_idx}",
-            cls="self-start",
-        )
+    content_cls = f"px-2.5 py-1.5 rounded-lg max-w-xs {'rounded-br-none border-green-700 border' if msg['role'] == 'user' else 'rounded-bl-none border-zinc-400 border'}"
+
+    return Div(
+        Div(msg["role"], cls="text-xs text-zinc-500 mb-1"),
+        Div(
+            msg["content"],
+            cls=f"bg-{'green-600 text-white' if msg['role'] == 'user' else 'zinc-200 text-black'} {content_cls}",
+            id=f"msg-content-{msg_idx}",
+        ),
+        id=f"msg-{msg_idx}",
+        cls=f"self-{'end' if msg['role'] == 'user' else 'start'}",
+    )
 
 
 def chat_window():
     return Div(
         id="messages",
         *[chat_message(i) for i in range(len(messages))],
-        cls="flex flex-col gap-2 p-4 max-w-3xl max-h-96 overflow-y-auto",
+        cls="flex flex-col gap-2 p-4 h-96 overflow-y-auto w-full",
     )
 
 
-@rt("/")
-async def get():
-    cts = Div(
+def chat_title():
+    return Div(
+        "streaming-chat-example",
+        cls="text-xs font-mono absolute top-0 left-0 w-fit p-1 bg-zinc-900 border-b border-r border-zinc-700 rounded-tl-md rounded-br-md",
+    )
+
+
+def chat():
+    return Div(
+        chat_title(),
         chat_window(),
-        Form(chat_input(), id="form", ws_send=True),
+        Form(chat_input(), id="form", ws_send=True, cls="w-full"),
         Script(
             """
             function scrollToBottom(smooth) {
@@ -95,24 +80,21 @@ async def get():
         ),
         hx_ext="ws",
         ws_connect="/ws",
+        cls="flex flex-col w-full max-w-2xl border border-zinc-700 h-full p-2 rounded-md outline-1 outline outline-zinc-700 outline-offset-2 relative",
     )
-    return Titled("Websocket Test", cts)
 
 
-async def on_connect(send):
-    print("Connected!")
-    await send(Div("Hello, you have connected", id="notifications"))
+@rt("/")
+async def get():
+    cts = Div(chat(), cls="flex justify-center items-center min-h-screen bg-black")
+    return cts
 
 
-async def on_disconnect(ws):
-    print("Disconnected!")
-
-
-@fasthtml_app.ws("/ws", conn=on_connect, disconn=on_disconnect)
+@fasthtml_app.ws("/ws")
 async def ws(msg: str, send):
     messages.append({"role": "user", "content": msg})
 
-    await send(chat_input())
+    await send(chat_input(disabled=True))
     await send(
         Div(chat_message(len(messages) - 1), id="messages", hx_swap_oob="beforeend")
     )
@@ -140,6 +122,8 @@ async def ws(msg: str, send):
             Span(chunk, id=f"msg-content-{len(messages)-1}", hx_swap_oob="beforeend")
         )
         await asyncio.sleep(0.2)
+
+    await send(chat_input(disabled=False))
 
 
 if __name__ == "__main__":
