@@ -1,4 +1,5 @@
 from fasthtml.common import *
+from components.assets import send_icon
 
 chat_messages = []
 
@@ -8,11 +9,31 @@ def chat_input(disabled=False):
         type="text",
         name="msg",
         id="msg-input",
+        required=True,
         placeholder="Type a message",
         hx_swap_oob="true",
         autofocus="true",
         disabled=disabled,
-        cls="!mb-0 bg-zinc-900 border border-zinc-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 disabled:bg-zinc-800 disabled:border-zinc-700 disabled:cursor-not-allowed",
+        cls="!mb-0 bg-zinc-900 border border-zinc-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-500 disabled:bg-zinc-800 disabled:border-zinc-700 disabled:cursor-not-allowed rounded-md",
+    )
+
+
+def chat_button(disabled=False):
+    return Button(
+        send_icon(),
+        id="send-button",
+        disabled=disabled,
+        cls="bg-green-500 hover:bg-green-600 text-white rounded-md p-2.5 flex items-center justify-center border border-zinc-700 focus-visible:outline-none focus-visible:ring-zinc-500 disabled:bg-green-800 disabled:border-green-700 disabled:cursor-not-allowed",
+    )
+
+
+def chat_form(disabled=False):
+    return Form(
+        chat_input(disabled=disabled),
+        chat_button(disabled=disabled),
+        id="form",
+        ws_send=True,
+        cls="w-full flex gap-2 items-center border-t border-zinc-700 p-2",
     )
 
 
@@ -36,7 +57,7 @@ def chat_window():
     return Div(
         id="messages",
         *[chat_message(i) for i in range(len(chat_messages))],
-        cls="flex flex-col gap-2 p-4 h-[40vh] overflow-y-auto w-full",
+        cls="flex flex-col gap-2 p-4 h-[45vh] overflow-y-auto w-full",
     )
 
 
@@ -51,7 +72,7 @@ def chat():
     return Div(
         chat_title(),
         chat_window(),
-        Form(chat_input(), id="form", ws_send=True, cls="w-full"),
+        chat_form(),
         Script(
             """
             function scrollToBottom(smooth) {
@@ -73,5 +94,5 @@ def chat():
         ),
         hx_ext="ws",
         ws_connect="/ws",
-        cls="flex flex-col w-full max-w-2xl border border-zinc-700 h-full p-2 rounded-md outline-1 outline outline-zinc-700 outline-offset-2 relative",
+        cls="flex flex-col w-full max-w-2xl border border-zinc-700 h-full rounded-md outline-1 outline outline-zinc-700 outline-offset-2 relative",
     )
