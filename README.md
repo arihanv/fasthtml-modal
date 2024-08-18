@@ -15,6 +15,6 @@ Visit [modal.com](https://modal.com/) and create a free account. Then follow the
 
 Run the following command in your terminal:
 ```
-modal deploy app.py
+modal deploy deploy.py
 ```
 That's it!
