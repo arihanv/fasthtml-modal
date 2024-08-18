@@ -1,0 +1,2 @@
+modal==0.64.23
+python-fasthtml==0.3.6
