@@ -33,7 +33,7 @@ def github_link():
     return A(
         github_icon(),
         Span("GitHub", cls="font-mono text-green-500 hover:text-green-400 text-sm"),
-        href="https://github.com/arihanv/modal-fasthtml",
+        href="https://github.com/arihanv/fasthtml-modal",
         target="_blank",
         cls="font-mono text-green-500 hover:text-green-400 flex items-center gap-1",
     )
